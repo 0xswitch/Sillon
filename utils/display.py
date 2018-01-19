@@ -131,6 +131,9 @@ def parse_fields(fields, remove):
 def screen_size():
     return get_terminal_size()
 
+def p_e(msg):
+    print FAIL + "[!] "  + msg + ENDC
+
 
 # def old_display():
 # url, length, ligne = maximum(found_url)

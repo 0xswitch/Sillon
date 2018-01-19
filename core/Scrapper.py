@@ -1,10 +1,11 @@
 #encoding: utf-8
 import re
-import requests
+import sys
 
-import display
+from const import HOST_REGEX, URI_REGEX, PARAMETERS_REGEX, AHREF_REGEX, FORM_REGEX, METHOD_REGEX, ID_R, ACTION_REGEX, \
+    INPUT_REGEX, FIELD_REGEX, PHP_ERRORS_R
 from const import KEY
-from const import HOST_REGEX,URI_REGEX,PARAMETERS_REGEX,AHREF_REGEX, FORM_REGEX, METHOD_REGEX, ID_R, ACTION_REGEX, INPUT_REGEX, FIELD_REGEX, PHP_ERRORS_R
+from utils.display import get_terminal_size, p_e
 
 
 class Scrapper(object):
@@ -12,7 +13,8 @@ class Scrapper(object):
     Main class which handle all found url
     """
 
-    def __init__(self, arguments):
+    def __init__(self, arguments, requester):
+        self.requester = requester
         self.args = arguments
         self.url = None
         self.base_url =  None
@@ -34,7 +36,7 @@ class Scrapper(object):
         self.parse_arguments(self.args)
 
         if self.verbose:
-            x, y = display.get_terminal_size()
+            x, y = get_terminal_size()
             msg = "=[ Verbose ]="
             print msg + "=" * (x - len("=[ Verbose ]="))
             self.get_url_parameters(self.url)
@@ -50,7 +52,12 @@ class Scrapper(object):
         :param arguments:
         :return:
         """
-        self.url = arguments.url
+        if not re.match(HOST_REGEX, arguments.url):
+            p_e("The provided url does not match the url format")
+            sys.exit(-1)
+        else:
+            self.url = arguments.url + "/" if arguments.url[-1] != "/" else arguments.url
+
         self.base_url = self.get_base_url()
         if arguments.default_page is None:
             self.default_page = "index.php"
@@ -90,8 +97,10 @@ class Scrapper(object):
         :return:
         """
         after_host = url.replace(self.base_url, "")
+
         if self.verbose:
             print "Analyzing : %s" % url
+
         try:
             uri, page_name, parameters = re.findall(URI_REGEX, after_host)[0] # URI / page.php / parameters
         except IndexError:
@@ -119,44 +128,47 @@ class Scrapper(object):
             self.get_url_parameters(url.split("?")[0], referer=referer,recursion=recursion)
 
         # informations gatherred
-        ligne, length, status, page, headers, cookies = self.page_info(url)
-        forms = self.forms(page,referer=url)
-        php_errors = self.PHP_errors(page, url)
+        try:
+            ligne, length, status, page, headers, cookies = self.page_info(url)
+        except TypeError:
+            pass
+        else:
+            forms = self.forms(page,referer=url)
+            php_errors = self.PHP_errors(page, url)
 
 
-        dic = self.create_dictionnary([
-            url,
-            "/" + after_host,
-            "/" + uri,
-            page_name.replace("?", ""),
-            headers["Server"],
-            parameters,
-            length,
-            ligne,
-            status,
-            forms,
-            php_errors,
-            cookies.items()
-        ])
+            dic = self.create_dictionnary([
+                url,
+                "/" + after_host,
+                "/" + uri,
+                page_name.replace("?", ""),
+                headers["Server"],
+                parameters,
+                length,
+                ligne,
+                status,
+                forms,
+                php_errors,
+                cookies.items()
+            ])
 
-        self.found_url.append(dic)
+            self.found_url.append(dic)
 
-        try: self.waiting_link.remove(url)
-        except ValueError: pass
-        # Looking for new link in newly found url
-        self.grep_link(page, status, url, recursion)
+            try: self.waiting_link.remove(url)
+            except ValueError: pass
+            # Looking for new link in newly found url
+            self.grep_link(page, status, url, recursion)
 
 
     def get_base_url(self):
         """
-        Return base url : http://host/
+        Return base url : http(s)://host/
         :return:
         """
         try:
-            return re.findall(HOST_REGEX, self.url)[0][0]
+            base = re.findall(HOST_REGEX, self.url)[0][0]
+            return base
         except IndexError: # pas de parametres
-            if self.url[-1] != "/":
-                self.url+= "/"
             return self.url
 
 
@@ -209,11 +221,12 @@ class Scrapper(object):
         :param url:
         :return:
         """
-        query = requests.get(url)
-        ligne = query.text.count("\n")
-
-        return ligne, len(query.text), query.status_code, query.text, query.headers, query.cookies
-
+        query = self.requester.get(url)
+        if query is not None:
+            ligne = query.text.count("\n")
+            return ligne, len(query.text), query.status_code, query.text, query.headers, query.cookies
+        else:
+            return None
 
 
     def forms(self, page, referer=None):

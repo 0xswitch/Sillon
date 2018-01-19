@@ -16,7 +16,7 @@ KEY = [
     "cookies",
 ]
 
-HOST_REGEX = r"(http://([a-zzZ-a0-9\.-]+)/)"
+HOST_REGEX = r"(https?://([a-zzZ-a0-9\.-]+)/?)"
 URI_REGEX = r"([\w\/]+)?\/+(\w+\.php\??)?(.*)"
 PARAMETERS_REGEX = r"(\w+)=(\w+)"
 AHREF_REGEX = r"\s*(?i)href\s*=\s*(\"([^\"]*\")|'[^']*'|([^'\">\\s]+))"
