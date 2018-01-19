@@ -14,6 +14,35 @@ def banner():
 
 """
 
+def display_parameters(args):
+    display_header("Parameters")
+    tmp = args.alias if args.alias is not None else "None"
+    print "Allowed alias      : " + tmp
+    tmp = args.fields if args.fields is not None else "None"
+    print "Specified fields   : " + tmp
+    tmp = args.excluded if args.excluded is not None else "None"
+    print "Excluded fields    : " + tmp
+    tmp =  "index.php" if args.default_page is None else args.default_page
+    print "Default page       : " + tmp
+    tmp = "5" if args.max_retries is None else str(args.max_retries)
+    print "Max retries        : " + tmp
+    tmp = "5.0" if args.timeout is None else str(args.timeout)
+    print "Max timeout        : " + tmp
+    tmp = "infinity" if args.recursive is None else  str(args.recursive)
+    print "Recursivity level  : " + tmp
+    tmp = "None" if args.remove is None else  args.remove
+    print "Removed words      : " + tmp
+    tmp =  OKGREEN + "True" + ENDC if args.debug else  FAIL + "False" + ENDC
+    print "Debug              : " + tmp
+    print
+
+def display_header(msg):
+    x, y = get_terminal_size()
+    tmp = "=[ " + msg + " ]="
+    print tmp + "=" * (x - len("=[ " + msg +" ]="))
+
+
+
 def maximum(liste):
     max_url  = 0
     max_length = 0
@@ -96,8 +125,7 @@ def nice_display(found_url, fields, remove):
     i = 1
     if valid_fields is not None:
         for item in found_url:
-            head = "=[ "+ OKGREEN + str(i) + ENDC +" ]" if i % 2 == 0 else "=[ "+ FAIL + str(i) + ENDC +" ]"
-            print head  + "=" * (get_terminal_size()[0] - len(head) + 5)
+            display_header( OKGREEN + str(i) + ENDC if i % 2 == 0 else FAIL + str(i) + ENDC )
             print
             for field in valid_fields:
                 print "["+ OKGREEN + "+" + ENDC +"] " + mep(field, item[field]) if i % 2 == 0 else "["+ FAIL + "+" + ENDC +"] " + mep(field, item[field])

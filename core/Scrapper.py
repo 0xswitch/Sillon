@@ -2,10 +2,9 @@
 import re
 import sys
 
-from const import HOST_REGEX, URI_REGEX, PARAMETERS_REGEX, AHREF_REGEX, FORM_REGEX, METHOD_REGEX, ID_R, ACTION_REGEX, \
-    INPUT_REGEX, FIELD_REGEX, PHP_ERRORS_R, ALLOW_EXT
+from const import *
 from const import KEY
-from utils.display import get_terminal_size, p_e
+from utils.display import p_e, display_header
 
 
 class Scrapper(object):
@@ -24,6 +23,7 @@ class Scrapper(object):
         self.verbose = False
         self.recursion = -1
         self.excluded = None
+        self.alias = ""
 
 
     def __call__(self, *args, **kwargs):
@@ -36,13 +36,11 @@ class Scrapper(object):
         self.parse_arguments(self.args)
 
         if self.verbose:
-            x, y = get_terminal_size()
-            msg = "=[ Verbose ]="
-            print msg + "=" * (x - len("=[ Verbose ]="))
-            self.get_url_parameters(self.url)
+            display_header("Verbose")
+            self.get_url_parameters(self.url, base_url=self.base_url)
             print
         else:
-            self.get_url_parameters(self.url)
+            self.get_url_parameters(self.url,base_url=self.base_url)
 
         return (self.found_url, self.args.fields, self.args.remove)
 
@@ -56,7 +54,7 @@ class Scrapper(object):
             p_e("The provided url does not match the url format")
             sys.exit(-1)
         else:
-            if re.search("\."+ALLOW_EXT+"$", arguments.url) is None:
+            if re.search("\."+ALLOW_EXT+"$", arguments.url) is None and re.search("\w+=\w+$", arguments.url) is None:
                 self.url = arguments.url + "/" if arguments.url[-1] != "/" else arguments.url
             else:
                 self.url = arguments.url
@@ -80,6 +78,9 @@ class Scrapper(object):
             else:
                 self.excluded = r"" + arguments.excluded
 
+        if arguments.alias is not None:
+            self.alias = arguments.alias
+
     def create_dictionnary(self, args):
         """
         Create a dictionnary for each page of the website containing each informations gathered
@@ -92,14 +93,14 @@ class Scrapper(object):
 
         return dic
 
-    def get_url_parameters(self, url, referer=None, recursion=0):
+    def get_url_parameters(self, url, base_url=None, referer=None, recursion=0 ):
         """
         Main function gather informations through website
         :param url:
         :param referer:
         :return:
         """
-        after_host = url.replace(self.base_url, "")
+        after_host = url.replace(base_url, "")
 
         if self.verbose:
             print "Analyzing : %s" % url
@@ -126,17 +127,13 @@ class Scrapper(object):
 
         parameters = re.findall(PARAMETERS_REGEX, parameters)
 
-        # test the url without parameters
-        if parameters and url.split("?")[0] not in self.waiting_link and url.split("?")[0] not in [item["url"] for item in self.found_url]:
-            self.get_url_parameters(url.split("?")[0], referer=referer,recursion=recursion)
-
-        # informations gatherred
+        # informations gathered
         try:
             ligne, length, status, page, headers, cookies = self.page_info(url)
         except TypeError:
             pass
         else:
-            forms = self.forms(page,referer=url)
+            forms = self.forms(page, referer=url)
             php_errors = self.PHP_errors(page, url)
 
 
@@ -162,17 +159,23 @@ class Scrapper(object):
             # Looking for new link in newly found url
             self.grep_link(page, status, url, recursion)
 
+            # test the url without parameters
+            if parameters and url.split("?")[0] not in self.waiting_link and url.split("?")[0] not in [item["url"] for item in self.found_url]:
+                self.get_url_parameters(url.split("?")[0], base_url=base_url, referer=referer, recursion=recursion)
 
-    def get_base_url(self):
+
+    def get_base_url(self, force=None):
         """
         Return base url : http(s)://host/
         :return:
         """
+        url = force if force is not None else self.url
+
         try:
-            base = re.findall(HOST_REGEX, self.url)[0][0]
+            base = re.findall(HOST_REGEX, url)[0][0]
             return base
         except IndexError: # pas de parametres
-            return self.url
+            return url
 
 
     def grep_link(self, page, status_code, referer, recursion):
@@ -198,7 +201,7 @@ class Scrapper(object):
                         referer = referer.split("?")[0]
                         lien = referer + lien
 
-                    if ((re.search(r"https?://", lien) and re.match(r"" + self.base_url, lien)) or (re.match(r"^\?(.*)", lien) and lien not in referer )) \
+                    if ((re.search(r"https?://", lien) and  (re.match(r"" + self.base_url, lien) or (re.match(r"http://(" + self.alias.replace(",", "|") + ")/", lien) and self.alias != "" ) ) ) or (re.match(r"^\?(.*)", lien) and lien not in referer )) \
                             and lien not in new_link and lien not in already_know_link  and lien not in self.waiting_link:
 
                         ok = False
@@ -213,9 +216,9 @@ class Scrapper(object):
                             self.waiting_link.append(lien)
                             if self.verbose:
                                 print "\tNew link found : %s" % lien
-            #
+
             for lien, referer, recursion in new_link:
-                self.get_url_parameters(lien, referer=referer, recursion=recursion)
+                self.get_url_parameters(lien, base_url=self.get_base_url(lien), referer=referer, recursion=recursion)
 
 
     def page_info(self, url):

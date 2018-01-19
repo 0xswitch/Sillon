@@ -5,7 +5,7 @@ import argparse
 
 from core.Scrapper import *
 from core.const import KEY
-from utils.display import banner, nice_display
+from utils.display import banner, nice_display, display_parameters
 from utils.request import requester
 
 # todo https or not
@@ -14,6 +14,7 @@ from utils.request import requester
 # todo [] in parameters
 # todo dump output
 # todo multithread .....
+# todo ajouter / supprimer ext
 
 
 class Sillon():
@@ -25,8 +26,14 @@ class Sillon():
     """
 
     def __init__(self, args):
+        if args.p:
+            display_parameters(args)
+
         req = requester(args)
-        nice_display(*Scrapper(args, req)())
+        if args.hide:
+            nice_display(*Scrapper(args, req)())
+        else:
+            Scrapper(args, req)()
 
 
 if __name__ == "__main__":
@@ -35,8 +42,11 @@ if __name__ == "__main__":
     parser.add_argument('--url', required=True, help="site to be scanned")
     parser.add_argument("--default_page", help="by default : index.php")
     parser.add_argument("--fields", "--f","-f", help=",".join(KEY))
+    parser.add_argument("--alias", "--a","-a", help="Allow alias")
     parser.add_argument("--verbose", "--v", "-v", action="store_true", help="blablalbla")
     parser.add_argument("--debug", "--d", "-d", action="store_true", help="Display errors")
+    parser.add_argument("-p", action="store_true", help="Display parameters")
+    parser.add_argument("--hide", "--h", action="store_false", help="Display output")
     parser.add_argument("--remove", help=",".join(KEY))
     parser.add_argument("--excluded", help="List of word excluded from url comma separated")
     parser.add_argument("--timeout", type=float, help="Set request timeout")

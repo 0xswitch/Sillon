@@ -21,6 +21,14 @@ This project was created in the context of python class while my studies
 * __--fields__ fields,comma,separated : specify which fields will be displayed
 * __--excluded__ fields,comma,separated : remove theses fields from default fields list
 * __--recursive__ integer : Define the recurisivity level, default is -1 which mean infinity
+* __--alias__ alias,separated : Define allowed alias for host (127.0.0.1 / localhost / ..)
+* __--verbose__ : Enable verbose
+* __--debug__ : Display errors
+* __--p__ : Display parameters
+* __--hide__ : Hide output
+* __--remove__ word,forbidden : Forbid word in link (the link will NOT be saved)
+* __--timeout__ : Specify request timeout
+* __--max_retries__ : Specify max retries for request
 
 ___
 
