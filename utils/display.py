@@ -11,6 +11,7 @@ def banner():
      |
   ^  |  ^
    \_|_/                      switch
+
 """
 
 def maximum(liste):

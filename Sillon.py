@@ -1,5 +1,5 @@
-#encoding: utf-8
 #!/usr/bin/python
+#encoding:utf-8
 
 import argparse
 
@@ -25,12 +25,12 @@ class Sillon():
     """
 
     def __init__(self, args):
-        banner()
         req = requester(args)
         nice_display(*Scrapper(args, req)())
 
 
 if __name__ == "__main__":
+    banner()
     parser = argparse.ArgumentParser()
     parser.add_argument('--url', required=True, help="site to be scanned")
     parser.add_argument("--default_page", help="by default : index.php")
