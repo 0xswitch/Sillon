@@ -110,7 +110,7 @@ class Scrapper(object):
             uri = ""
             page_name = self.default_page
             parameters = ""
-        print page_name
+
         if page_name == "":
             page_name = self.default_page
             if not parameters:
