@@ -3,7 +3,7 @@ import re
 import sys
 
 from const import HOST_REGEX, URI_REGEX, PARAMETERS_REGEX, AHREF_REGEX, FORM_REGEX, METHOD_REGEX, ID_R, ACTION_REGEX, \
-    INPUT_REGEX, FIELD_REGEX, PHP_ERRORS_R
+    INPUT_REGEX, FIELD_REGEX, PHP_ERRORS_R, ALLOW_EXT
 from const import KEY
 from utils.display import get_terminal_size, p_e
 
@@ -56,7 +56,10 @@ class Scrapper(object):
             p_e("The provided url does not match the url format")
             sys.exit(-1)
         else:
-            self.url = arguments.url + "/" if arguments.url[-1] != "/" else arguments.url
+            if re.search("\."+ALLOW_EXT+"$", arguments.url) is None:
+                self.url = arguments.url + "/" if arguments.url[-1] != "/" else arguments.url
+            else:
+                self.url = arguments.url
 
         self.base_url = self.get_base_url()
         if arguments.default_page is None:
@@ -107,7 +110,7 @@ class Scrapper(object):
             uri = ""
             page_name = self.default_page
             parameters = ""
-
+        print page_name
         if page_name == "":
             page_name = self.default_page
             if not parameters:

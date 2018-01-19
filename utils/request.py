@@ -8,7 +8,7 @@ from utils.colors import ENDC
 class requester():
 
     def __init__(self, args):
-        self.timeout = 2.0
+        self.timeout = 5.0
         self.max_retries = 5
         self.debug = False
         self.parse_args(args)

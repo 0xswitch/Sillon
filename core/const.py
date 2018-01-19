@@ -15,9 +15,10 @@ KEY = [
     "php_errors",
     "cookies",
 ]
-
+EXCLUDED_EXT = "xml"
+ALLOW_EXT = "php"
 HOST_REGEX = r"(https?://([a-zzZ-a0-9\.-]+)/?)"
-URI_REGEX = r"([\w\/]+)?\/+(\w+\.php\??)?(.*)"
+URI_REGEX = r"([\w\/\-]+)?\/+(\w+\.\w+\??)?(.*)"
 PARAMETERS_REGEX = r"(\w+)=(\w+)"
 AHREF_REGEX = r"\s*(?i)href\s*=\s*(\"([^\"]*\")|'[^']*'|([^'\">\\s]+))"
 PHP_ERRORS_R = r"(Warning|Notice|Fatal Error):(.*?)on line (<i>)?\d+"
