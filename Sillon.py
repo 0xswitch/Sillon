@@ -3,9 +3,12 @@
 
 import argparse
 
-from core.Scrapper import *
+from core.Scrapper import Scrapp
+from core.Fuzzer import  Fuzz
 from core.const import KEY
-from utils.display import banner, nice_display, display_parameters
+from core.Loader import Load
+
+from utils.display import banner, nice_display, display_parameters, display_header, fuzzer_mep
 from utils.request import requester
 
 # todo https or not
@@ -15,6 +18,11 @@ from utils.request import requester
 # todo dump output
 # todo multithread .....
 # todo ajouter / supprimer ext
+# todo online payload
+# todo random payload
+# todo differencier sql / php errors
+# todo ask utilisateurs si prompt quand injec detectée
+# todo juste afficher comparatif sans score
 
 
 class Sillon():
@@ -26,14 +34,27 @@ class Sillon():
     """
 
     def __init__(self, args):
+
         if args.p:
             display_parameters(args)
 
         req = requester(args)
+        payload = Load(__file__)()
+
+        resultat = Scrapp(args, req)()
+
         if args.hide:
-            nice_display(*Scrapper(args, req)())
-        else:
-            Scrapper(args, req)()
+            nice_display(*resultat)
+
+        if args.stop:
+            display_header("Fuzzer output")
+
+        fuzzed = [Fuzz(url, req, payload, args)() for url in resultat[0]]
+        print
+        display_header("Fuzzer resume")
+        for url in fuzzed:
+            fuzzer_mep(url)
+
 
 
 if __name__ == "__main__":
@@ -44,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument("--fields", "--f","-f", help=",".join(KEY))
     parser.add_argument("--alias", "--a","-a", help="Allow alias")
     parser.add_argument("--verbose", "--v", "-v", action="store_true", help="blablalbla")
+    parser.add_argument("--stop", action="store_true", help="Ask if the script must continue even if an attack vector is found")
     parser.add_argument("--debug", "--d", "-d", action="store_true", help="Display errors")
     parser.add_argument("-p", action="store_true", help="Display parameters")
     parser.add_argument("--hide", "--h", action="store_false", help="Display output")

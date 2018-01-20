@@ -6,6 +6,9 @@ from utils.colors import ENDC
 
 
 class requester():
+    """
+    Override request for global parameters
+    """
 
     def __init__(self, args):
         self.timeout = 5.0
@@ -43,7 +46,10 @@ class requester():
 
 
     def trace(self, e, msg, ret):
+        """
+        Display errors if debug is activated
+        """
         p_e(msg)
         if self.debug:
             print e
-        return None
+        return ret

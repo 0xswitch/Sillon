@@ -7,7 +7,7 @@ from const import KEY
 from utils.display import p_e, display_header
 
 
-class Scrapper(object):
+class Scrapp(object):
     """
     Main class which handle all found url
     """
@@ -22,8 +22,9 @@ class Scrapper(object):
         self.default_page = None
         self.verbose = False
         self.recursion = -1
-        self.excluded = None
+        self.remove = None
         self.alias = ""
+        self.debug = False
 
 
     def __call__(self, *args, **kwargs):
@@ -42,7 +43,7 @@ class Scrapper(object):
         else:
             self.get_url_parameters(self.url,base_url=self.base_url)
 
-        return (self.found_url, self.args.fields, self.args.remove)
+        return (self.found_url, self.args.fields, self.args.excluded)
 
     def parse_arguments(self, arguments):
         """
@@ -72,14 +73,17 @@ class Scrapper(object):
         if  arguments.recursive is not None:
             self.recursion = arguments.recursive
 
-        if arguments.excluded is not None:
-            if "," in arguments.excluded:
-                self.excluded = r"" + arguments.excluded.replace(",","|")
+        if arguments.remove is not None:
+            if "," in arguments.remove:
+                self.remove = r"" + arguments.remove.replace(",","|")
             else:
-                self.excluded = r"" + arguments.excluded
+                self.remove = r"" + arguments.remove
 
         if arguments.alias is not None:
             self.alias = arguments.alias
+
+        if arguments.debug:
+            self.debug = True
 
     def create_dictionnary(self, args):
         """
@@ -133,11 +137,11 @@ class Scrapper(object):
         except TypeError:
             pass
         else:
-            forms = self.forms(page, referer=url)
-            php_errors = self.PHP_errors(page, url)
-
+            forms = HTMLforms(page, referer=url)
+            php_errors = PHP_errors(page)
 
             dic = self.create_dictionnary([
+                base_url,
                 url,
                 "/" + after_host,
                 "/" + uri,
@@ -197,16 +201,18 @@ class Scrapper(object):
                 for lien in re.findall(AHREF_REGEX, page):
                     lien = lien[1][:-1]
 
-                    if re.match(r"^\?(.*)", lien) and lien not in referer:
+                    if re.match(r"^\.\/?\?(.*)", lien) and lien not in referer:
+                        if re.match(r"^\.\/\?(.*)", lien):
+                            lien = lien[2:]
                         referer = referer.split("?")[0]
                         lien = referer + lien
 
-                    if ((re.search(r"https?://", lien) and  (re.match(r"" + self.base_url, lien) or (re.match(r"http://(" + self.alias.replace(",", "|") + ")/", lien) and self.alias != "" ) ) ) or (re.match(r"^\?(.*)", lien) and lien not in referer )) \
+                    if ((re.search(r"https?://", lien) and  (re.match(r"" + self.base_url, lien) or (re.match(r"http://(" + self.alias.replace(",", "|") + ")/", lien) and self.alias != "" ) ) ) or (re.match(r"^\.\/?\?(.*)", lien) and lien not in referer )) \
                             and lien not in new_link and lien not in already_know_link  and lien not in self.waiting_link:
 
                         ok = False
-                        if self.excluded != None:
-                            if not re.search(self.excluded, lien):
+                        if self.remove != None:
+                            if not re.search(self.remove, lien):
                                 ok = True
                         else:
                             ok = True
@@ -216,12 +222,14 @@ class Scrapper(object):
                             self.waiting_link.append(lien)
                             if self.verbose:
                                 print "\tNew link found : %s" % lien
+                    elif self.debug:
+                        print "Nope %s" % lien
 
             for lien, referer, recursion in new_link:
                 self.get_url_parameters(lien, base_url=self.get_base_url(lien), referer=referer, recursion=recursion)
 
 
-    def page_info(self, url):
+    def page_info(self, url,):
         """
         Get some page informations
         :param url:
@@ -229,57 +237,63 @@ class Scrapper(object):
         """
         query = self.requester.get(url)
         if query is not None:
-            ligne = query.text.count("\n")
-            return ligne, len(query.text), query.status_code, query.text, query.headers, query.cookies
+            ligne = grep_ligne(query.text)
+            char = grep_char(query.text)
+            return ligne, char, query.status_code, query.text, query.headers, query.cookies
         else:
             return None
 
 
-    def forms(self, page, referer=None):
-        """
-        Find each HTML form present in web page
-        :param page:
-        :param referer:
-        :return:
-        """
-        found_forms = []
-        for form in (re.findall(FORM_REGEX, page, re.DOTALL)):
-            if re.findall(METHOD_REGEX, form, re.IGNORECASE):
+def grep_char(page):
+    return len(page)
 
-                try:
-                    id = re.findall(ID_R, form, re.IGNORECASE)[0]
-                except IndexError:
-                    id = ""
+def grep_ligne(page):
+    return page.count("\n")
 
-                try:
-                    action = re.findall(ACTION_REGEX, form, re.IGNORECASE)[0]
-                except IndexError:
-                    action = referer
+def HTMLforms(page, referer=None):
+    """
+    Find each HTML form present in web page
+    :param page:
+    :param referer:
+    :return:
+    """
+    found_forms = []
+    for form in (re.findall(FORM_REGEX, page, re.DOTALL)):
+        if re.findall(METHOD_REGEX, form, re.IGNORECASE):
+
+            try:
+                id = re.findall(ID_R, form, re.IGNORECASE)[0]
+            except IndexError:
+                id = ""
+
+            try:
+                action = re.findall(ACTION_REGEX, form, re.IGNORECASE)[0]
+            except IndexError:
+                action = referer
+            else:
+                if referer.find("?") != -1:  # il y a des parametres dans l'url qui mene au formulaire
+                    action = referer + action.replace("?", "&")
                 else:
-                    if referer.find("?") != -1:  # il y a des parametres dans l'url qui mene au formulaire
-                        action = referer + action.replace("?", "&")
-                    else:
-                        action = referer + action
+                    action = referer + action
 
-                intput_list = []
+            intput_list = []
 
-                for input in re.findall(INPUT_REGEX, form):
-                    field_list = []
-                    for field in re.findall(FIELD_REGEX, input):
-                        trash, key, value = field
-                        field_list.append((str(key), str(value)))
-                    intput_list.append(field_list)
+            for input in re.findall(INPUT_REGEX, form):
+                field_list = []
+                for field in re.findall(FIELD_REGEX, input):
+                    trash, key, value = field
+                    field_list.append((str(key), str(value)))
+                intput_list.append(field_list)
 
-                found_forms.append({"id": id, "action": action, "inputs": intput_list})
+            found_forms.append({"id": id, "action": action, "inputs": intput_list})
 
-        return found_forms
+    return found_forms
 
 
-    def PHP_errors(self, page, referer):
-        """
-        Try to find php errors if present
-        :param page:
-        :param referer:
-        :return:
-        """
-        return [(str(warning[0]), str(warning[1])) for warning in re.findall(PHP_ERRORS_R, page)]
+def PHP_errors(page):
+    """
+    Try to find php errors if present
+    :param page:
+    :return:
+    """
+    return [(str(warning[0]), str(warning[1]), str(warning[2]).replace("<i>", "")) for warning in re.findall(PHP_ERRORS_R, page, re.IGNORECASE)]

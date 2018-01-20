@@ -4,8 +4,10 @@ from utils.console_size import get_terminal_size
 from core.const import KEY
 
 
+
 def banner():
-    print u"""     o
+    print u"""
+     o
     -+-
      |              Happy Fuzzzzing
      |
@@ -13,6 +15,39 @@ def banner():
    \_|_/                      switch
 
 """
+
+
+def display_sql(url):
+    payload, parameters, errors = url
+    tmp = payload.split(parameters)
+    print "    Payload : " + tmp[0] + FAIL + parameters + ENDC + tmp[1]
+    if len(errors) == 0:
+        print "    Errors : None"
+    else:
+        for err in errors:
+            print "    " * 2 + err[0] + "  : " + err[1] + err[2]
+    print
+
+def fuzzer_mep(url_informations):
+    if url_informations is not None:
+        if len(url_informations["url_array"]) > 0:
+            print "Array in url : "
+            for url in url_informations["url_array"]:
+                payload, parameters, errors = url
+                tmp = payload.split(parameters)
+                print "    Payload : " + tmp[0] + FAIL + parameters + ENDC + tmp[1]
+                if len(errors) == 0:
+                    print "    Errors : None"
+                else:
+                    for err in errors:
+                        print "    " * 2 + err[0] + "  : " + err[1] + err[2]
+                print
+
+        if len(url_informations["sql_injection"]) > 0:
+            print "SQL injection : \n"
+            for url in url_informations["sql_injection"]:
+                display_sql(url)
+
 
 def display_parameters(args):
     display_header("Parameters")
@@ -34,13 +69,14 @@ def display_parameters(args):
     print "Removed words      : " + tmp
     tmp =  OKGREEN + "True" + ENDC if args.debug else  FAIL + "False" + ENDC
     print "Debug              : " + tmp
+    tmp = OKGREEN + "True" + ENDC if args.verbose else  FAIL + "False" + ENDC
+    print "Verbose            : " + tmp
     print
 
 def display_header(msg):
     x, y = get_terminal_size()
     tmp = "=[ " + msg + " ]="
     print tmp + "=" * (x - len("=[ " + msg +" ]="))
-
 
 
 def maximum(liste):
@@ -66,6 +102,8 @@ def mep(field, value):
     :param value:
     :return:
     """
+    if field == "host":
+        return "Host : %s" % value
     if field == "url":
         return "URL : %s" % value
     elif field == "after_host":
@@ -162,6 +200,9 @@ def screen_size():
 
 def p_e(msg):
     print FAIL + "[!] "  + msg + ENDC
+
+def p_i(msg):
+    print OKGREEN + "[!] " + msg + ENDC
 
 
 # def old_display():
