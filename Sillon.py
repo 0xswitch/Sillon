@@ -23,7 +23,7 @@ from utils.request import requester
 # todo differencier sql / php errors
 # todo ask utilisateurs si prompt quand injec detectée
 # todo juste afficher comparatif sans score
-
+# todo redirect 301
 
 class Sillon():
     """
@@ -48,12 +48,6 @@ class Sillon():
 
         if args.stop:
             display_header("Fuzzer output")
-
-        fuzzed = [Fuzz(url, req, payload, args)() for url in resultat[0]]
-        print
-        display_header("Fuzzer resume")
-        for url in fuzzed:
-            fuzzer_mep(url)
 
 
 

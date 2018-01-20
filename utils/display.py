@@ -115,7 +115,7 @@ def mep(field, value):
     elif field == "server":
         return "Server : %s " % value
     elif field == "parameters":
-        return  "Parameters :\n" + "\n".join(["    "+ "=".join(param) for param in value])  if len(value) > 0 else "Parameters : None"
+        return  "Parameters :\n" + "\n".join(["    "+ "=".join(param) for param in value ])  if len(value) > 0 else "Parameters : None"
     elif field == "length":
         return "Char in page : %i" % value
     elif field == "ligne":

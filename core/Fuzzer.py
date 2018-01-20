@@ -90,6 +90,7 @@ class Fuzz():
                         payload += key + "=" + value + "&"
 
                 payload = payload[:-1]
+
                 query = self.requester.get(payload)
                 difference_length = self.length - grep_char(query.text)
                 difference_ligne = self.ligne - grep_ligne(query.text)

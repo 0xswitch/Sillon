@@ -105,18 +105,19 @@ class Scrapp(object):
         :return:
         """
         after_host = url.replace(base_url, "")
-
         if self.verbose:
             print "Analyzing : %s" % url
 
         try:
-            uri, page_name, parameters = re.findall(URI_REGEX, after_host)[0] # URI / page.php / parameters
-        except IndexError:
+            # print re.findall(URI_REGEX, after_host)[0]
+            uri, page_name, _, parameters = re.findall(URI_REGEX, after_host)[0] # URI / page.php / parameters
+            # print re.findall(URI_REGEX, after_host)[0]
+        except IndexError as e:
             uri = ""
             page_name = self.default_page
             parameters = ""
 
-        if page_name == "":
+        if page_name == "" and referer is not None:
             page_name = self.default_page
             if not parameters:
                 url += self.default_page
@@ -128,9 +129,7 @@ class Scrapp(object):
                     before, after = url.split("#")
                     url = before + self.default_page + "#" + after
 
-
         parameters = re.findall(PARAMETERS_REGEX, parameters)
-
         # informations gathered
         try:
             ligne, length, status, page, headers, cookies = self.page_info(url)
@@ -161,7 +160,7 @@ class Scrapp(object):
             try: self.waiting_link.remove(url)
             except ValueError: pass
             # Looking for new link in newly found url
-            self.grep_link(page, status, url, recursion)
+            self.grep_link(page, status, url, recursion, after_host)
 
             # test the url without parameters
             if parameters and url.split("?")[0] not in self.waiting_link and url.split("?")[0] not in [item["url"] for item in self.found_url]:
@@ -182,7 +181,7 @@ class Scrapp(object):
             return url
 
 
-    def grep_link(self, page, status_code, referer, recursion):
+    def grep_link(self, page, status_code, referer, recursion, referer_after_host):
         """
         Look for new links in page
         :param page:
@@ -191,6 +190,7 @@ class Scrapp(object):
         :return:
         """
 
+        referer_safe = referer
         recursion += 1
 
         if recursion < self.recursion or self.recursion == -1:
@@ -199,35 +199,84 @@ class Scrapp(object):
 
             if status_code == 200:
                 for lien in re.findall(AHREF_REGEX, page):
+                    referer = referer_safe
+                    old_lien = ""
                     lien = lien[1][:-1]
 
-                    if re.match(r"^\.\/?\?(.*)", lien) and lien not in referer:
+                    # ../ ../../ ...
+                    if re.match(r"^(\.\.\/)", lien):
+                        old_lien = lien
+                        i = 0
+                        c = True
+                        while c:
+                            i += 1
+                            lien = lien[3:]
+                            if not re.match(r"^(\.\.\/)", lien):
+                                c = False
+
+                        uri = re.findall(URI_REGEX, referer_after_host)[0][0]
+                        for x in range(0,i):
+                            referer = referer.replace(uri.split("/")[x] + "/", "")
+
+                    ######## parameters in url ########
+                    # ?bbb=ccc
+                    # ./?bbb=cc
+                    # /?bbb=cc
+                    # /?bb=cc
+                    if re.match(r"^(\.\/|/)?\?(.*)", lien) and lien not in referer:
+                        ## ./?bbb=cc
                         if re.match(r"^\.\/\?(.*)", lien):
                             lien = lien[2:]
+                        ## /?bbb=cc
+                        if re.match(r"^\/\?(.*)", lien):
+                            lien = lien[1:]
+
                         referer = referer.split("?")[0]
                         lien = referer + lien
 
-                    if ((re.search(r"https?://", lien) and  (re.match(r"" + self.base_url, lien) or (re.match(r"http://(" + self.alias.replace(",", "|") + ")/", lien) and self.alias != "" ) ) ) or (re.match(r"^\.\/?\?(.*)", lien) and lien not in referer )) \
-                            and lien not in new_link and lien not in already_know_link  and lien not in self.waiting_link:
+                    # file.php
+                    if re.match(ALONE_FILE, lien):
+                        # ./file.php
+                        if re.match(ALONE_FILE_WITH_DOT, lien):
+                            lien = lien[2:]
+                        # /file.php
+                        if re.match(ALONE_FILE_WITH_SLASH, lien):
+                            lien = lien[1:]
 
-                        ok = False
-                        if self.remove != None:
-                            if not re.search(self.remove, lien):
-                                ok = True
-                        else:
-                            ok = True
+                        lien =  referer.rsplit("/",1)[0] + "/" + lien
 
-                        if ok:
-                            new_link.append([lien, referer,recursion])
-                            self.waiting_link.append(lien)
-                            if self.verbose:
-                                print "\tNew link found : %s" % lien
+                    # format and scope
+                    if ((re.search(r"https?://", lien) and  (re.match(r"" + self.base_url, lien) or (re.match(r"http://(" + self.alias.replace(",", "|") + ")/", lien) and self.alias != "" ) ) ) or (re.match(r"^(\.\/)?\?(.*)", lien) and lien not in referer )) :
+                        # known
+                        if lien not in new_link and lien not in already_know_link  and lien not in self.waiting_link:
+                            # avoid /////// in url
+                            if lien.rsplit("/")[0][-1] != "/":
+
+                                # search if url contain removed words
+                                dont_contain = False
+                                if self.remove != None:
+                                    if not re.search(self.remove, lien):
+                                        dont_contain = True
+                                else:
+                                    dont_contain = True
+
+                                if dont_contain:
+                                    new_link.append([lien, referer,recursion])
+                                    self.waiting_link.append(lien)
+                                    if self.verbose:
+                                        print "\tNew link found : %s" % lien
+                                        if old_lien != "":
+                                            print "\tWas : %s" % old_lien
+
+                        elif self.debug:
+                            p_e("Already known : %s" % lien)
+
                     elif self.debug:
-                        print "Nope %s" % lien
+                        p_e("Bad format or out of scope : %s" % lien)
+                        raw_input()
 
             for lien, referer, recursion in new_link:
                 self.get_url_parameters(lien, base_url=self.get_base_url(lien), referer=referer, recursion=recursion)
-
 
     def page_info(self, url,):
         """
