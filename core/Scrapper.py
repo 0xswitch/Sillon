@@ -56,7 +56,7 @@ class Scrapp(object):
             sys.exit(-1)
         else:
             if re.search("\."+ALLOW_EXT+"$", arguments.url) is None and re.search("\w+=\w+$", arguments.url) is None:
-                self.url = arguments.url + "/" if arguments.url[-1] != "/" else arguments.url
+                self.url = arguments.url #+ "/" if arguments.url[-1] != "/" else arguments.url
             else:
                 self.url = arguments.url
 
@@ -216,7 +216,11 @@ class Scrapp(object):
 
                         uri = re.findall(URI_REGEX, referer_after_host)[0][0]
                         for x in range(0,i):
-                            referer = referer.replace(uri.split("/")[x] + "/", "")
+                            try:
+                                referer = referer.replace(uri.split("/")[x] + "/", "")
+                            except IndexError:
+                                # could be generated if the link lead to a 404 erro
+                                pass
 
                     ######## parameters in url ########
                     # ?bbb=ccc
@@ -250,8 +254,7 @@ class Scrapp(object):
                         # known
                         if lien not in new_link and lien not in already_know_link  and lien not in self.waiting_link:
                             # avoid /////// in url
-                            if lien.rsplit("/")[0][-1] != "/":
-
+                            if lien.rsplit("/",1)[0][-1] != "/":
                                 # search if url contain removed words
                                 dont_contain = False
                                 if self.remove != None:
@@ -273,7 +276,6 @@ class Scrapp(object):
 
                     elif self.debug:
                         p_e("Bad format or out of scope : %s" % lien)
-                        raw_input()
 
             for lien, referer, recursion in new_link:
                 self.get_url_parameters(lien, base_url=self.get_base_url(lien), referer=referer, recursion=recursion)
