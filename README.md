@@ -17,6 +17,9 @@ This project was created in the context of python class while my studies. I want
 * __--url URL__ : the url of the site which must be scanned
 
 ##### optionals parameters :
+* __--nofuzz__ : Don't fuzz
+* __--sqli_file__ http://host/payload : Fetch SQLi payload online \n separated must be used with --name who specify the name for the save
+* __--sqli_file__ fichier : Select a previously download payload file
 * __--default_page index.php__ : where index.php is the default index page of the server, default is index.php
 * __--recursive__ integer : Define the recurisivity level, default is -1 which mean infinity
 * __--alias__ alias,separated : Define allowed alias for host (127.0.0.1 / localhost / ..)
