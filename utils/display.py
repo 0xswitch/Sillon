@@ -17,36 +17,44 @@ def banner():
 """
 
 
-def display_sql(url):
-    payload, parameters, errors = url
-    tmp = payload.split(parameters)
-    print "    Payload : " + tmp[0] + FAIL + parameters + ENDC + tmp[1]
-    if len(errors) == 0:
-        print "    Errors : None"
-    else:
-        for err in errors:
-            print "    " * 2 + err[0] + "  : " + err[1] + err[2]
-    print
+def display_array_url(url_informations):
+    for url in url_informations:
+        payload, length, ligne, errors, code = url
 
-def fuzzer_mep(url_informations):
-    if url_informations is not None:
-        if len(url_informations["url_array"]) > 0:
-            print "Array in url : "
-            for url in url_informations["url_array"]:
-                payload, parameters, errors = url
-                tmp = payload.split(parameters)
-                print "    Payload : " + tmp[0] + FAIL + parameters + ENDC + tmp[1]
-                if len(errors) == 0:
-                    print "    Errors : None"
-                else:
-                    for err in errors:
-                        print "    " * 2 + err[0] + "  : " + err[1] + err[2]
-                print
+        print WARNING + "[ [] ]" + ENDC,
+        if code == 200:
+            print OKGREEN,
+        elif code == 301:
+            print WARNING,
+        elif code == 404:
+            print FAIL,
 
-        if len(url_informations["sql_injection"]) > 0:
-            print "SQL injection : \n"
-            for url in url_informations["sql_injection"]:
-                display_sql(url)
+        print str(code) + "  "  + ENDC + str(length) + "  " + str(ligne)  + " "  * 4 + payload
+
+        if len(errors) > 0:
+            for err in errors:
+                print OKGREEN + "".join(err) + ENDC
+            print
+
+def display_sql(url_informations):
+    for url in url_informations:
+        payload, length, ligne, param, errors, code = url
+        print WARNING + "[SQLI]" + ENDC,
+        if code == 200:
+            print OKGREEN,
+        elif code == 301:
+            print WARNING,
+        elif code == 404:
+            print FAIL,
+
+        tmp = payload.split(param)
+
+        print str(code) + "  " + ENDC +str(length) + "  " + str(ligne) + " " * 4 + tmp[0] + FAIL + param + ENDC + tmp[1]
+
+        if len(errors) > 0:
+            for err in errors:
+                print OKGREEN + "".join(err) + ENDC
+            print
 
 
 def display_parameters(args):
@@ -71,6 +79,8 @@ def display_parameters(args):
     print "Debug              : " + tmp
     tmp = OKGREEN + "True" + ENDC if args.verbose else  FAIL + "False" + ENDC
     print "Verbose            : " + tmp
+    tmp = OKGREEN + "True" + ENDC if not args.nofuzz else  FAIL + "False" + ENDC
+    print "Fuzzing            : " + tmp
     print
 
 def display_header(msg):

@@ -105,14 +105,10 @@ class Scrapp(object):
         :return:
         """
         after_host = url.replace(base_url, "")
-        if self.verbose:
-            print "Analyzing : %s" % url
 
         try:
-            # print re.findall(URI_REGEX, after_host)[0]
             uri, page_name, _, parameters = re.findall(URI_REGEX, after_host)[0] # URI / page.php / parameters
-            # print re.findall(URI_REGEX, after_host)[0]
-        except IndexError as e:
+        except IndexError:
             uri = ""
             page_name = self.default_page
             parameters = ""
@@ -123,11 +119,15 @@ class Scrapp(object):
                 url += self.default_page
             else:
                 try:
-                    before, after = url.split("?")
-                    url = before + self.default_page + "?" + after
+                    before = url.replace(parameters, "")
+                    after = parameters
+                    url = before + self.default_page + after
                 except ValueError:
                     before, after = url.split("#")
                     url = before + self.default_page + "#" + after
+
+        if self.verbose:
+            print "Analyzing : %s" % url
 
         parameters = re.findall(PARAMETERS_REGEX, parameters)
         # informations gathered
@@ -164,6 +164,7 @@ class Scrapp(object):
 
             # test the url without parameters
             if parameters and url.split("?")[0] not in self.waiting_link and url.split("?")[0] not in [item["url"] for item in self.found_url]:
+
                 self.get_url_parameters(url.split("?")[0], base_url=base_url, referer=referer, recursion=recursion)
 
 
@@ -246,6 +247,10 @@ class Scrapp(object):
                         # /file.php
                         if re.match(ALONE_FILE_WITH_SLASH, lien):
                             lien = lien[1:]
+
+                        # parametre dans l'url
+                        if len(referer.split("?")) > 0:
+                            referer = referer.split("?")[0]
 
                         lien =  referer.rsplit("/",1)[0] + "/" + lien
 
